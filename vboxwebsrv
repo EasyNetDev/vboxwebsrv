@@ -29,6 +29,8 @@ VBOXWEB_PORT="18083"
 VBOXWEB_USER="vbox"
 VBOXWEB_GROUP="vbox"
 VBOXWEB_CHDIR="/home/vbox"
+VBOXWEB_VERBOSE="no"
+VBOXWEB_EXTRA=""
 
 . /etc/default/virtualbox
 
@@ -46,9 +48,13 @@ if [ ! -d "/var/log/VirtualBox" ]; then
     chown ${VBOXWEB_USER}.${VBOXWEB_GROUP} /var/log/VirtualBox
 fi
 
+if [ "x${VBOXWEB_VERBOSE}" = "xyes" ]; then
+    VBOXWEB_EXTRA=${VBOXWEB_EXTRA}" -v"
+fi
+
 do_start() {
     log_daemon_msg "Starting VirtualBox Web Server" "vboxwebsrv"
-    start-stop-daemon --start --quiet -m -p ${PIDFILE} --chuid ${VBOXWEB_USER}:${VBOXWEB_GROUP} --chdir ${VBOXWEB_CHDIR} -b --exec $DAEMON -- -H ${VBOXWEB_IP} -p ${VBOXWEB_PORT} -v
+    start-stop-daemon --start --quiet -m -p ${PIDFILE} --chuid ${VBOXWEB_USER}:${VBOXWEB_GROUP} --chdir ${VBOXWEB_CHDIR} -b --exec $DAEMON -- -H ${VBOXWEB_IP} -p ${VBOXWEB_PORT} -F ${LOGFILE} ${VBOXWEB_EXTRA}
     log_end_msg $?
 }
 
