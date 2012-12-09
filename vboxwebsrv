@@ -1,0 +1,69 @@
+#!/bin/sh -e
+# Start/stop the VirtualBox Web Server daemon.
+#
+### BEGIN INIT INFO
+# Provides:          vboxwebsrv
+# Required-Start:    $remote_fs $network
+# Required-Stop:     $remote_fs
+# Should-Start:      $network $named slapd autofs ypbind nscd nslcd
+# Should-Stop:       $network $named slapd autofs ypbind nscd nslcd
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: VirtualBox Web Server for manage the VMs via phpVirtualBox
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+# Enable/disable service
+
+DESC="VirtualBox Web Server daemon"
+NAME=vboxwebsrv
+DAEMON=/usr/lib/virtualbox/vboxwebsrv
+PIDFILE=/var/run/VirtualBox/vboxwebsrv.pid
+LOGFILE=/var/log/VirtualBox/vboxwebsrv.log
+SCRIPTNAME=/etc/init.d/"$NAME"
+
+### Those variables can be overwrited via /etc/default/virtualbox file
+VBOXWEB_IP="127.0.0.1"
+VBOXWEB_PORT="18083"
+VBOXWEB_USER="vbox"
+VBOXWEB_GROUP="vbox"
+VBOXWEB_CHDIR="/home/vbox"
+
+. /etc/default/virtualbox
+
+if [ "${VBOXWEB_USER}" = "" ] ; then
+    echo "VirtualBox WebServer it can't be started because there is no VBOXWEB_USER defined in  /etc/default/virtualbox"
+    exit 1
+fi
+
+if [ ! -d "/var/run/VirtualBox" ]; then
+    mkdir -p /var/run/VirtualBox
+    chown ${VBOXWEB_USER}.${VBOXWEB_GROUP} /var/run/VirtualBox
+fi
+if [ ! -d "/var/log/VirtualBox" ]; then
+    mkdir -p /var/log/VirtualBox
+    chown ${VBOXWEB_USER}.${VBOXWEB_GROUP} /var/log/VirtualBox
+fi
+
+case "$1" in
+    start)
+        log_daemon_msg "Starting VirtualBox Web Server" "vboxwebsrv"
+        start-stop-daemon --start --quiet -m -p ${PIDFILE} --chuid ${VBOXWEB_USER}:${VBOXWEB_GROUP} --chdir ${VBOXWEB_CHDIR} -b --exec $DAEMON -- -H ${VBOXWEB_IP} -p ${VBOXWEB_PORT} -v
+        log_end_msg $?
+        ;;
+    stop)
+        log_daemon_msg "Stopping VirtualBox Web Server" "vboxwebsrv"
+        start-stop-daemon --stop --quiet -p ${PIDFILE} --exec $DAEMON
+        RETVAL=$?
+        [ $RETVAL -eq 0 ] && [ -e "$PIDFILE" ] && rm -f $PIDFILE
+        log_end_msg $RETVAL
+        ;;
+    *)
+        echo "Usage: $0 start|stop" >&2
+        stop-
+        exit 3
+        ;;
+esac
+
+exit 0
