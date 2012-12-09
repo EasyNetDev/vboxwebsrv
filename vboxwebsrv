@@ -46,22 +46,37 @@ if [ ! -d "/var/log/VirtualBox" ]; then
     chown ${VBOXWEB_USER}.${VBOXWEB_GROUP} /var/log/VirtualBox
 fi
 
+do_start() {
+    log_daemon_msg "Starting VirtualBox Web Server" "vboxwebsrv"
+    start-stop-daemon --start --quiet -m -p ${PIDFILE} --chuid ${VBOXWEB_USER}:${VBOXWEB_GROUP} --chdir ${VBOXWEB_CHDIR} -b --exec $DAEMON -- -H ${VBOXWEB_IP} -p ${VBOXWEB_PORT} -v
+    log_end_msg $?
+}
+
+do_stop() {
+    log_daemon_msg "Stopping VirtualBox Web Server" "vboxwebsrv"
+    start-stop-daemon --stop --quiet -p ${PIDFILE} --exec $DAEMON
+    RETVAL=$?
+    [ $RETVAL -eq 0 ] && [ -e "$PIDFILE" ] && rm -f $PIDFILE
+    log_end_msg $RETVAL
+}
+
 case "$1" in
     start)
-        log_daemon_msg "Starting VirtualBox Web Server" "vboxwebsrv"
-        start-stop-daemon --start --quiet -m -p ${PIDFILE} --chuid ${VBOXWEB_USER}:${VBOXWEB_GROUP} --chdir ${VBOXWEB_CHDIR} -b --exec $DAEMON -- -H ${VBOXWEB_IP} -p ${VBOXWEB_PORT} -v
-        log_end_msg $?
+        do_start
         ;;
     stop)
-        log_daemon_msg "Stopping VirtualBox Web Server" "vboxwebsrv"
-        start-stop-daemon --stop --quiet -p ${PIDFILE} --exec $DAEMON
-        RETVAL=$?
-        [ $RETVAL -eq 0 ] && [ -e "$PIDFILE" ] && rm -f $PIDFILE
-        log_end_msg $RETVAL
+        do_stop
+        ;;
+    status)
+        status_of_proc -p ${PIDFILE} ${DAEMON} "${DESC}"
+        ;;
+    restart|reload)
+        do_stop
+        sleep 2
+        do_start
         ;;
     *)
-        echo "Usage: $0 start|stop" >&2
-        stop-
+        echo "Usage: $0 start|stop|status|restart|reload" >&2
         exit 3
         ;;
 esac
